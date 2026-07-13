@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Options Payoff Calculator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { 
+      max-width: 1200px; 
+      margin: 0 auto; 
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 30px;
+    }
+    h1 { 
+      color: #333; 
+      margin-bottom: 10px;
+      text-align: center;
+      font-size: 28px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .control-panel {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    .strategy-selector {
+      margin-bottom: 25px;
+    }
+    .strategy-selector label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .strategy-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .strategy-btn {
+      padding: 10px 16px;
+      border: 2px solid #ddd;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .strategy-btn:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+    .strategy-btn.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .control-group {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+    }
+    .control-group label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+    }
+    .control-group input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .value-display {
+      text-align: center;
+      font-weight: 700;
+      color: #667eea;
+      margin-top: 8px;
+      font-size: 16px;
+    }
+    .chart-container {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    svg {
+      width: 100%;
+      height: auto;
+      min-height: 400px;
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .metric-card {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    .metric-card.profit {
+      border-left-color: #27ae60;
+      background: linear-gradient(135deg, #d5f4e6 0%, #a8e6d3 100%);
+    }
+    .metric-card.loss {
+      border-left-color: #e74c3c;
+      background: linear-gradient(135deg, #fadbd8 0%, #f5b7b1 100%);
+    }
+    .metric-label {
+      font-size: 12px;
+      color: #555;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .metric-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #333;
+    }
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 15px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+    .instruction {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #2196f3;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #1565c0;
+    }
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Options Payoff Calculator</h1>
+  <p class="subtitle">Interactive tool to visualize options strategy payoffs in real time</p>
+
+  <div class="instruction">
+    💡 <strong>How to use:</strong> Select a strategy, adjust the sliders to change strike prices and premiums, and watch the payoff diagram update in real time. The metrics show your maximum profit, loss, and breakeven point.
+  </div>
+
+  <div class="control-panel">
+    <!-- Strategy Selector -->
+    <div class="strategy-selector">
+      <label>Select Strategy:</label>
+      <div class="strategy-buttons">
+        <button class="strategy-btn active" onclick="selectStrategy('longCall')">Long Call</button>
+        <button class="strategy-btn" onclick="selectStrategy('longPut')">Long Put</button>
+        <button class="strategy-btn" onclick="selectStrategy('shortCall')">Short Call</button>
+        <button class="strategy-btn" onclick="selectStrategy('shortPut')">Short Put</button>
+        <button class="strategy-btn" onclick="selectStrategy('bullCallSpread')">Bull Call Spread</button>
+        <button class="strategy-btn" onclick="selectStrategy('bearCallSpread')">Bear Call Spread</button>
+        <button class="strategy-btn" onclick="selectStrategy('bullPutSpread')">Bull Put Spread</button>
+        <button class="strategy-btn" onclick="selectStrategy('collar')">Collar</button>
+      </div>
+    </div>
+
+    <!-- Controls Grid -->
+    <div class="controls-grid" id="controlsContainer">
+      <!-- Controls will be dynamically generated -->
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics-grid" id="metricsContainer">
+    <!-- Metrics will be dynamically generated -->
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background: #2196f3;"></div>Payoff line</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #27ae60;"></div>Profit zone</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #e74c3c;"></div>Loss zone</div>
+  </div>
+
+  <!-- Chart with Side Controls -->
+  <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 30px;">
+    <!-- Chart -->
+    <div class="chart-container" style="flex: 1; margin-bottom: 0;">
+      <svg id="payoffChart"></svg>
+    </div>
+    
+    <!-- Price Range Controls -->
+    <div style="width: 220px; background: #f8f9fa; padding: 20px; border-radius: 8px; height: fit-content; border: 1px solid #e0e0e0;">
+      <label style="display: block; font-weight: 600; color: #333; margin-bottom: 15px; font-size: 14px;">Price Range</label>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 12px; color: #555; margin-bottom: 8px; font-weight: 500;">Min Price</label>
+        <input type="range" id="priceMinSlider" min="0.50" max="200" value="70" step="0.10" style="width: 100%; cursor: pointer;">
+        <div style="text-align: center; font-weight: 700; color: #667eea; margin-top: 8px; font-size: 14px;" id="priceMinDisplay">$70.00</div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 12px; color: #555; margin-bottom: 8px; font-weight: 500;">Max Price</label>
+        <input type="range" id="priceMaxSlider" min="0.50" max="200" value="130" step="0.10" style="width: 100%; cursor: pointer;">
+        <div style="text-align: center; font-weight: 700; color: #667eea; margin-top: 8px; font-size: 14px;" id="priceMaxDisplay">$130.00</div>
+      </div>
+      
+      <div style="padding: 12px; background: white; border-radius: 6px; border: 1px solid #e0e0e0; font-size: 12px; color: #666; line-height: 1.5;">
+        <strong>Range Width:</strong><br>
+        <span id="priceRangeWidth">$60.00</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Options Payoff Calculator | All calculations shown at expiration
+  </div>
+</div>
+
+<script>
+// ==================== CALCULATION ENGINE ====================
+
+function calculateLegPayoff(leg, underlyingPrice) {
+  let intrinsicValue = 0;
+  
+  if (leg.type === 'call') {
+    intrinsicValue = Math.max(underlyingPrice - leg.strike, 0);
+  } else if (leg.type === 'put') {
+    intrinsicValue = Math.max(leg.strike - underlyingPrice, 0);
+  } else if (leg.type === 'stock') {
+    return (underlyingPrice - leg.strike) * leg.quantity * 100;
+  }
+  
+  const contractPayoff = intrinsicValue - leg.premium;
+  
+  if (leg.side === 'long') {
+    return contractPayoff * leg.quantity * 100;
+  } else {
+    return (leg.premium - intrinsicValue) * leg.quantity * 100;
+  }
+}
+
+function calculateStrategyPayoff(strategy, underlyingPrice) {
+  let totalPayoff = 0;
+  for (let leg of strategy.legs) {
+    totalPayoff += calculateLegPayoff(leg, underlyingPrice);
+  }
+  return totalPayoff;
+}
+
+function generatePayoffSeries(strategy, priceMin, priceMax, steps = 100) {
+  const data = [];
+  const step = (priceMax - priceMin) / steps;
+  
+  for (let i = 0; i <= steps; i++) {
+    const price = priceMin + (step * i);
+    const payoff = calculateStrategyPayoff(strategy, price);
+    data.push({ price, payoff });
+  }
+  
+  return data;
+}
+
+function calculateMetrics(payoffData) {
+  const payoffs = payoffData.map(d => d.payoff);
+  
+  const maxProfit = Math.max(...payoffs);
+  const maxLoss = Math.min(...payoffs);
+  
+  const breakevens = [];
+  for (let i = 0; i < payoffData.length - 1; i++) {
+    const curr = payoffData[i].payoff;
+    const next = payoffData[i + 1].payoff;
+    
+    if ((curr < 0 && next >= 0) || (curr > 0 && next <= 0)) {
+      breakevens.push(payoffData[i].price);
+    }
+  }
+  
+  return {
+    maxProfit,
+    maxLoss,
+    breakevens
+  };
+}
+
+// ==================== STRATEGY DEFINITIONS ====================
+
+const strategyLibrary = {
+  longCall: (params) => ({
+    name: 'Long Call',
+    legs: [{
+      type: 'call',
+      strike: params.strike1,
+      premium: params.premium1,
+      quantity: 1,
+      side: 'long'
+    }]
+  }),
+  
+  longPut: (params) => ({
+    name: 'Long Put',
+    legs: [{
+      type: 'put',
+      strike: params.strike1,
+      premium: params.premium1,
+      quantity: 1,
+      side: 'long'
+    }]
+  }),
+  
+  shortCall: (params) => ({
+    name: 'Short Call',
+    legs: [{
+      type: 'call',
+      strike: params.strike1,
+      premium: params.premium1,
+      quantity: 1,
+      side: 'short'
+    }]
+  }),
+  
+  shortPut: (params) => ({
+    name: 'Short Put',
+    legs: [{
+      type: 'put',
+      strike: params.strike1,
+      premium: params.premium1,
+      quantity: 1,
+      side: 'short'
+    }]
+  }),
+  
+  bullCallSpread: (params) => ({
+    name: 'Bull Call Spread',
+    legs: [
+      { type: 'call', strike: params.strike1, premium: params.premium1, quantity: 1, side: 'long' },
+      { type: 'call', strike: params.strike2, premium: params.premium2, quantity: 1, side: 'short' }
+    ]
+  }),
+  
+  bearCallSpread: (params) => ({
+    name: 'Bear Call Spread',
+    legs: [
+      { type: 'call', strike: params.strike1, premium: params.premium1, quantity: 1, side: 'short' },
+      { type: 'call', strike: params.strike2, premium: params.premium2, quantity: 1, side: 'long' }
+    ]
+  }),
+  
+  bullPutSpread: (params) => ({
+    name: 'Bull Put Spread',
+    legs: [
+      { type: 'put', strike: params.strike1, premium: params.premium1, quantity: 1, side: 'short' },
+      { type: 'put', strike: params.strike2, premium: params.premium2, quantity: 1, side: 'long' }
+    ]
+  }),
+  
+  collar: (params) => ({
+    name: 'Collar',
+    legs: [
+      { type: 'stock', strike: params.stockCost, quantity: 1, side: 'long', premium: 0 },
+      { type: 'put', strike: params.strike1, premium: params.premium1, quantity: 1, side: 'long' },
+      { type: 'call', strike: params.strike2, premium: params.premium2, quantity: 1, side: 'short' }
+    ]
+  }),
+  
+};
+
+// ==================== UI STATE ====================
+
+let currentStrategy = 'longCall';
+let params = {
+  strike1: 100,
+  strike2: 105,
+  premium1: 0.50,
+  premium2: 0.20,
+  stockCost: 100,
+  currentPrice: 100,
+  priceMin: 70,
+  priceMax: 130
+};
+
+// ==================== CONTROL SETUP ====================
+
+function getControlsForStrategy(strategy) {
+  const controls = {
+    longCall: [
+      { name: 'currentPrice', label: 'Current Underlying Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'strike1', label: 'Strike Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium1', label: 'Premium Paid', min: 0.50, max: 50, step: 0.10 }
+    ],
+    longPut: [
+      { name: 'currentPrice', label: 'Current Underlying Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'strike1', label: 'Strike Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium1', label: 'Premium Paid', min: 0.50, max: 50, step: 0.10 }
+    ],
+    shortCall: [
+      { name: 'currentPrice', label: 'Current Underlying Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'strike1', label: 'Strike Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium1', label: 'Premium Collected', min: 0.50, max: 50, step: 0.10 }
+    ],
+    shortPut: [
+      { name: 'currentPrice', label: 'Current Underlying Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'strike1', label: 'Strike Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium1', label: 'Premium Collected', min: 0.50, max: 50, step: 0.10 }
+    ],
+    bullCallSpread: [
+      { name: 'currentPrice', label: 'Current Underlying Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'strike1', label: 'Lower Strike (Buy)', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium1', label: 'Lower Premium Paid', min: 0.50, max: 50, step: 0.10 },
+      { name: 'strike2', label: 'Upper Strike (Sell)', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium2', label: 'Upper Premium Collected', min: 0.50, max: 50, step: 0.10 }
+    ],
+    bearCallSpread: [
+      { name: 'currentPrice', label: 'Current Underlying Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'strike1', label: 'Lower Strike (Sell)', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium1', label: 'Lower Premium Collected', min: 0.50, max: 50, step: 0.10 },
+      { name: 'strike2', label: 'Upper Strike (Buy)', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium2', label: 'Upper Premium Paid', min: 0.50, max: 50, step: 0.10 }
+    ],
+    bullPutSpread: [
+      { name: 'currentPrice', label: 'Current Underlying Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'strike1', label: 'Upper Strike (Sell)', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium1', label: 'Upper Premium Collected', min: 0.50, max: 50, step: 0.10 },
+      { name: 'strike2', label: 'Lower Strike (Buy)', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium2', label: 'Lower Premium Paid', min: 0.50, max: 50, step: 0.10 }
+    ],
+    collar: [
+      { name: 'currentPrice', label: 'Current Underlying Price', min: 0.50, max: 200, step: 0.10 },
+      { name: 'stockCost', label: 'Stock Cost Basis', min: 0.50, max: 200, step: 0.10 },
+      { name: 'strike1', label: 'Put Strike (Protection)', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium1', label: 'Put Premium Paid', min: 0.50, max: 50, step: 0.10 },
+      { name: 'strike2', label: 'Call Strike (Cap)', min: 0.50, max: 200, step: 0.10 },
+      { name: 'premium2', label: 'Call Premium Collected', min: 0.50, max: 50, step: 0.10 }
+    ]
+  };
+  
+  return controls[strategy] || controls.longCall;
+}
+
+function renderControls() {
+  const controls = getControlsForStrategy(currentStrategy);
+  const container = document.getElementById('controlsContainer');
+  container.innerHTML = '';
+  
+  controls.forEach(control => {
+    const div = document.createElement('div');
+    div.className = 'control-group';
+    
+    const label = document.createElement('label');
+    label.textContent = control.label;
+    
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = control.min;
+    input.max = control.max;
+    input.step = control.step;
+    input.value = params[control.name] || control.min;
+    
+    const valueDisplay = document.createElement('div');
+    valueDisplay.className = 'value-display';
+    valueDisplay.textContent = '$' + parseFloat(params[control.name] || control.min).toFixed(2);
+    
+    input.addEventListener('input', (e) => {
+      params[control.name] = parseFloat(e.target.value);
+      valueDisplay.textContent = '$' + parseFloat(e.target.value).toFixed(2);
+      
+      // If current price changes, reinitialize price range
+      if (control.name === 'currentPrice') {
+        initializePriceRange();
+      }
+      
+      updateDisplay();
+    });
+    
+    div.appendChild(label);
+    div.appendChild(input);
+    div.appendChild(valueDisplay);
+    container.appendChild(div);
+  });
+}
+
+// ==================== SVG RENDERING ====================
+
+function renderPayoffDiagram(payoffData) {
+  const svg = document.getElementById('payoffChart');
+  svg.innerHTML = '';
+  
+  const width = Math.max(800, svg.clientWidth);
+  const height = 400;
+  const margin = { top: 30, right: 30, bottom: 50, left: 60 };
+  const plotWidth = width - margin.left - margin.right;
+  const plotHeight = height - margin.top - margin.bottom;
+  
+  const priceMin = payoffData[0].price;
+  const priceMax = payoffData[payoffData.length - 1].price;
+  const minPayoff = Math.min(...payoffData.map(d => d.payoff));
+  const maxPayoff = Math.max(...payoffData.map(d => d.payoff));
+  const payoffRange = maxPayoff - minPayoff || 1;
+  
+  const scaleX = (price) => margin.left + ((price - priceMin) / (priceMax - priceMin)) * plotWidth;
+  const scaleY = (payoff) => margin.top + plotHeight - ((payoff - minPayoff) / payoffRange) * plotHeight;
+  
+  // White background
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('width', width);
+  bg.setAttribute('height', height);
+  bg.setAttribute('fill', '#ffffff');
+  svg.appendChild(bg);
+  
+  // Grid
+  for (let i = 1; i < 5; i++) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', margin.left);
+    line.setAttribute('x2', width - margin.right);
+    line.setAttribute('y1', margin.top + (plotHeight / 5) * i);
+    line.setAttribute('y2', margin.top + (plotHeight / 5) * i);
+    line.setAttribute('stroke', '#f0f0f0');
+    line.setAttribute('stroke-width', '1');
+    svg.appendChild(line);
+  }
+  
+  // Zero line
+  const zeroLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  zeroLine.setAttribute('x1', margin.left);
+  zeroLine.setAttribute('x2', width - margin.right);
+  zeroLine.setAttribute('y1', scaleY(0));
+  zeroLine.setAttribute('y2', scaleY(0));
+  zeroLine.setAttribute('stroke', '#999');
+  zeroLine.setAttribute('stroke-width', '1');
+  svg.appendChild(zeroLine);
+  
+  // Payoff line
+  let pathData = `M ${scaleX(payoffData[0].price)} ${scaleY(payoffData[0].payoff)}`;
+  for (let i = 1; i < payoffData.length; i++) {
+    pathData += ` L ${scaleX(payoffData[i].price)} ${scaleY(payoffData[i].payoff)}`;
+  }
+  
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', pathData);
+  path.setAttribute('stroke', '#2196f3');
+  path.setAttribute('stroke-width', '2.5');
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(path);
+  
+  // Fill profit area (above zero line, green)
+  let profitPath = '';
+  for (let i = 0; i < payoffData.length; i++) {
+    if (payoffData[i].payoff >= 0) {
+      if (profitPath === '') {
+        profitPath = `M ${scaleX(payoffData[i].price)} ${scaleY(payoffData[i].payoff)}`;
+      } else {
+        profitPath += ` L ${scaleX(payoffData[i].price)} ${scaleY(payoffData[i].payoff)}`;
+      }
+    }
+  }
+  
+  if (profitPath !== '') {
+    // Complete the profit path by going to zero line and back
+    for (let i = payoffData.length - 1; i >= 0; i--) {
+      if (payoffData[i].payoff >= 0) {
+        profitPath += ` L ${scaleX(payoffData[i].price)} ${scaleY(0)}`;
+        break;
+      }
+    }
+    for (let i = 0; i < payoffData.length; i++) {
+      if (payoffData[i].payoff >= 0) {
+        profitPath += ` L ${scaleX(payoffData[i].price)} ${scaleY(0)}`;
+        break;
+      }
+    }
+    profitPath += ' Z';
+    
+    const profitFill = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    profitFill.setAttribute('d', profitPath);
+    profitFill.setAttribute('fill', '#27ae60');
+    profitFill.setAttribute('opacity', '0.15');
+    svg.appendChild(profitFill);
+  }
+  
+  // Fill loss area (below zero line, red)
+  let lossPath = '';
+  for (let i = 0; i < payoffData.length; i++) {
+    if (payoffData[i].payoff < 0) {
+      if (lossPath === '') {
+        lossPath = `M ${scaleX(payoffData[i].price)} ${scaleY(payoffData[i].payoff)}`;
+      } else {
+        lossPath += ` L ${scaleX(payoffData[i].price)} ${scaleY(payoffData[i].payoff)}`;
+      }
+    }
+  }
+  
+  if (lossPath !== '') {
+    // Complete the loss path by going to zero line and back
+    for (let i = payoffData.length - 1; i >= 0; i--) {
+      if (payoffData[i].payoff < 0) {
+        lossPath += ` L ${scaleX(payoffData[i].price)} ${scaleY(0)}`;
+        break;
+      }
+    }
+    for (let i = 0; i < payoffData.length; i++) {
+      if (payoffData[i].payoff < 0) {
+        lossPath += ` L ${scaleX(payoffData[i].price)} ${scaleY(0)}`;
+        break;
+      }
+    }
+    lossPath += ' Z';
+    
+    const lossFill = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    lossFill.setAttribute('d', lossPath);
+    lossFill.setAttribute('fill', '#e74c3c');
+    lossFill.setAttribute('opacity', '0.15');
+    svg.appendChild(lossFill);
+  }
+  
+  // Axis labels
+  const labels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  labels.setAttribute('font-size', '12px');
+  labels.setAttribute('fill', '#666');
+  
+  for (let i = 0; i <= 4; i++) {
+    const price = priceMin + (priceMax - priceMin) * (i / 4);
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', scaleX(price));
+    text.setAttribute('y', height - 25);
+    text.setAttribute('text-anchor', 'middle');
+    text.textContent = '$' + price.toFixed(0);
+    labels.appendChild(text);
+  }
+  
+  for (let i = 0; i <= 4; i++) {
+    const payoff = minPayoff + payoffRange * (i / 4);
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', margin.left - 10);
+    text.setAttribute('y', scaleY(payoff) + 4);
+    text.setAttribute('text-anchor', 'end');
+    text.textContent = '$' + Math.round(payoff);
+    labels.appendChild(text);
+  }
+  
+  svg.appendChild(labels);
+  
+  // Axis titles
+  const titleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  titleGroup.setAttribute('font-size', '13px');
+  titleGroup.setAttribute('fill', '#333');
+  titleGroup.setAttribute('font-weight', '600');
+  
+  const xTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  xTitle.setAttribute('x', width / 2);
+  xTitle.setAttribute('y', height - 5);
+  xTitle.setAttribute('text-anchor', 'middle');
+  xTitle.textContent = 'Underlying Price at Expiration';
+  titleGroup.appendChild(xTitle);
+  
+  const yTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  yTitle.setAttribute('x', 15);
+  yTitle.setAttribute('y', margin.top + 15);
+  yTitle.textContent = 'Profit / Loss';
+  titleGroup.appendChild(yTitle);
+  
+  svg.appendChild(titleGroup);
+  
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+
+// ==================== METRICS DISPLAY ====================
+
+function renderMetrics(metrics) {
+  const container = document.getElementById('metricsContainer');
+  container.innerHTML = '';
+  
+  const maxProfitCard = document.createElement('div');
+  maxProfitCard.className = 'metric-card profit';
+  maxProfitCard.innerHTML = `
+    <div class="metric-label">Max Profit</div>
+    <div class="metric-value">$${metrics.maxProfit.toFixed(0)}</div>
+  `;
+  container.appendChild(maxProfitCard);
+  
+  const maxLossCard = document.createElement('div');
+  maxLossCard.className = 'metric-card loss';
+  maxLossCard.innerHTML = `
+    <div class="metric-label">Max Loss</div>
+    <div class="metric-value">$${metrics.maxLoss.toFixed(0)}</div>
+  `;
+  container.appendChild(maxLossCard);
+  
+  const breakEvenCard = document.createElement('div');
+  breakEvenCard.className = 'metric-card';
+  const breakEvenText = metrics.breakevens.length > 0 
+    ? metrics.breakevens.map(b => '$' + b.toFixed(2)).join(', ')
+    : 'N/A';
+  breakEvenCard.innerHTML = `
+    <div class="metric-label">Breakeven</div>
+    <div class="metric-value" style="font-size: 16px;">${breakEvenText}</div>
+  `;
+  container.appendChild(breakEvenCard);
+}
+
+// ==================== MAIN UPDATE ====================
+
+function updateDisplay() {
+  const strategy = strategyLibrary[currentStrategy](params);
+  const payoffData = generatePayoffSeries(strategy, params.priceMin, params.priceMax, 150);
+  const metrics = calculateMetrics(payoffData);
+  
+  renderPayoffDiagram(payoffData);
+  renderMetrics(metrics);
+}
+
+function selectStrategy(strategy) {
+  currentStrategy = strategy;
+  
+  document.querySelectorAll('.strategy-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  renderControls();
+  initializePriceRange();
+  updateDisplay();
+}
+
+// ==================== INITIALIZATION ====================
+
+// Initialize price range based on current price
+function initializePriceRange() {
+  const minPrice = Math.max(0.50, params.currentPrice * 0.70);
+  const maxPrice = params.currentPrice * 1.30;
+  
+  params.priceMin = minPrice;
+  params.priceMax = maxPrice;
+  
+  document.getElementById('priceMinSlider').value = minPrice.toFixed(2);
+  document.getElementById('priceMaxSlider').value = maxPrice.toFixed(2);
+  document.getElementById('priceMinDisplay').textContent = '$' + minPrice.toFixed(2);
+  document.getElementById('priceMaxDisplay').textContent = '$' + maxPrice.toFixed(2);
+  updatePriceRangeWidth();
+}
+
+renderControls();
+initializePriceRange();
+updateDisplay();
+
+// Price range slider listeners
+document.getElementById('priceMinSlider').addEventListener('input', (e) => {
+  params.priceMin = parseFloat(e.target.value);
+  document.getElementById('priceMinDisplay').textContent = '$' + params.priceMin.toFixed(2);
+  updatePriceRangeWidth();
+  updateDisplay();
+});
+
+document.getElementById('priceMaxSlider').addEventListener('input', (e) => {
+  params.priceMax = parseFloat(e.target.value);
+  document.getElementById('priceMaxDisplay').textContent = '$' + params.priceMax.toFixed(2);
+  updatePriceRangeWidth();
+  updateDisplay();
+});
+
+function updatePriceRangeWidth() {
+  const width = params.priceMax - params.priceMin;
+  document.getElementById('priceRangeWidth').textContent = '$' + width.toFixed(2);
+}
+</script>
+
+</body>
+</html>
